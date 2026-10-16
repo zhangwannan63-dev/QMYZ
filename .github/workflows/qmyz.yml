@@ -13,6 +13,11 @@ on:
         required: true
         default: '10'
         type: string
+      accuracy:
+        description: '目标准确率（0–100，非精确保证）'
+        required: true
+        default: '100'
+        type: string
 permissions:
   contents: read
 concurrency:
@@ -38,6 +43,7 @@ jobs:
           QMYZ_LOGIN_URL: ${{ secrets.QMYZ_LOGIN_URL }}
           QMYZ_COURSE: ${{ inputs.course }}
           QMYZ_COUNT: ${{ inputs.count }}
+          QMYZ_ACCURACY: ${{ inputs.accuracy }}
         run: |
           python - <<'PY'
           import os
@@ -53,6 +59,12 @@ jobs:
               sys.exit("答题数量必须是 1–500 的整数。")
           if not 1 <= count <= 500:
               sys.exit("答题数量必须在 1–500 之间。")
+          try:
+              accuracy = int(os.environ["QMYZ_ACCURACY"])
+          except ValueError:
+              sys.exit("目标准确率必须是 0–100 的整数。")
+          if not 0 <= accuracy <= 100:
+              sys.exit("目标准确率必须在 0–100 之间。")
           course = os.environ["QMYZ_COURSE"]
           path = Path("qmyz") / (course + ".csv")
           if not course.isdigit() or not path.is_file():
@@ -61,7 +73,7 @@ jobs:
           import contextlib
           import io
           import runpy
-          sys.argv = ["qm_cli.py", "-u", url, "-i", course, "-c", str(path), "-n", str(count), "-a", "100"]
+          sys.argv = ["qm_cli.py", "-u", url, "-i", course, "-c", str(path), "-n", str(count), "-a", str(accuracy)]
           try:
               runpy.run_path("qm_cli.py", run_name="__main__")
           except Exception as exc:
