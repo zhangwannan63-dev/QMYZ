@@ -1,11 +1,17 @@
 # 云端运行
 
-1. 打开本仓库 Settings → Secrets and variables → Actions → New repository secret。
-2. 名称填写 `QMYZ_LOGIN_URL`；Secret 填写从易班青马易战首页复制的完整登录地址。不要提交到代码、Issue 或运行参数里。
-3. 打开 Actions → QMYZ 云端运行 → Run workflow。
-4. 选择课程 ID，填写答题数量（1–500，默认 10），点击 Run workflow。
-5. 打开运行记录查看结果。最长运行 60 分钟；同一仓库任务不并行运行。
+在 Settings → Secrets and variables → Actions 中分别添加各账号的完整登录链接：
 
-登录地址获取方式：打开易班青马易战，进入含视频的首页，点击右上角复制地址。地址失效时更新同名 Secret。
+| 账号槽位 / Secret 名称 | 内容 |
+| --- | --- |
+| QMYZ_LOGIN_URL | 账号 1 的登录链接 |
+| QMYZ_LOGIN_URL_2 | 账号 2 的登录链接 |
+| QMYZ_LOGIN_URL_3 | 账号 3 的登录链接 |
+| QMYZ_LOGIN_URL_4 | 账号 4 的登录链接 |
+| QMYZ_LOGIN_URL_5 | 账号 5 的登录链接 |
 
-工作流使用 Python 3.11，安装 requirements.txt 后执行 qm_cli.py，准确度参数为 100。代码不再打印登录 Cookie；异常只显示错误类型。题库、接口和登录状态仍可能导致任务失败。当前配置不包含定时运行。
+只需创建用到的槽位。登录地址从易班青马易战含视频的首页右上角复制；失效时更新对应 Secret。不要将链接提交到代码、Issue 或工作流输入框。
+
+打开 Actions → QMYZ 云端运行 → Run workflow，选择账号槽位、课程 ID、答题数量（1–500）和目标准确率（0–100）。每个账号提交一次；不同账号可并行，同一槽位不会并行。GitHub 的并发额度仍可能使任务排队；同一槽位最多保留一个待运行任务，新的待运行任务会替换旧的待运行任务。
+
+每次任务最长 60 分钟，默认 10 题、100% 目标准确率。准确率使用原项目控制算法，不保证精确达到目标。工作流使用 Python 3.11，安装 requirements.txt 后执行 qm_cli.py。代码不再打印登录 Cookie；异常只显示错误类型。题库、接口和登录状态仍可能导致失败。目前未设置定时运行，尚需有效登录链接进行实际验证。
