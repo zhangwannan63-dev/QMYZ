@@ -2,6 +2,12 @@ name: QMYZ 云端运行
 on:
   workflow_dispatch:
     inputs:
+      account:
+        description: '账号槽位（对应同名登录 Secret）'
+        required: true
+        default: 'QMYZ_LOGIN_URL'
+        type: choice
+        options: ['QMYZ_LOGIN_URL', 'QMYZ_LOGIN_URL_2', 'QMYZ_LOGIN_URL_3', 'QMYZ_LOGIN_URL_4', 'QMYZ_LOGIN_URL_5']
       course:
         description: '课程 ID（对应 qmyz 目录下的 CSV）'
         required: true
@@ -21,7 +27,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: qmyz-manual
+  group: qmyz-${{ inputs.account }}
   cancel-in-progress: false
 jobs:
   run:
@@ -40,7 +46,7 @@ jobs:
           python qm_cli.py --help
       - name: 执行任务
         env:
-          QMYZ_LOGIN_URL: ${{ secrets.QMYZ_LOGIN_URL }}
+          QMYZ_LOGIN_URL: ${{ secrets[inputs.account] }}
           QMYZ_COURSE: ${{ inputs.course }}
           QMYZ_COUNT: ${{ inputs.count }}
           QMYZ_ACCURACY: ${{ inputs.accuracy }}
@@ -52,7 +58,7 @@ jobs:
           from pathlib import Path
           url = os.environ.get("QMYZ_LOGIN_URL", "").strip()
           if not url:
-              sys.exit("请先在 Settings → Secrets and variables → Actions 添加 QMYZ_LOGIN_URL。")
+              sys.exit("所选账号未配置登录链接，请在 Settings → Secrets and variables → Actions 添加对应名称的 Secret。")
           try:
               count = int(os.environ["QMYZ_COUNT"])
           except ValueError:
