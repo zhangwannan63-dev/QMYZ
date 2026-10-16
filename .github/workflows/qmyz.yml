@@ -1,0 +1,70 @@
+name: QMYZ 云端运行
+on:
+  workflow_dispatch:
+    inputs:
+      course:
+        description: '课程 ID（对应 qmyz 目录下的 CSV）'
+        required: true
+        default: '12'
+        type: choice
+        options: ['2', '7', '8', '9', '10', '12', '50', '59', '61', '68', '138', '257', '444', '520']
+      count:
+        description: '答题数量（1–500）'
+        required: true
+        default: '10'
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: qmyz-manual
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: 安装依赖
+        run: python -m pip install -r requirements.txt
+      - name: 检查环境
+        run: |
+          python -m compileall -q qm_cli.py qm_utils
+          python qm_cli.py --help
+      - name: 执行任务
+        env:
+          QMYZ_LOGIN_URL: ${{ secrets.QMYZ_LOGIN_URL }}
+          QMYZ_COURSE: ${{ inputs.course }}
+          QMYZ_COUNT: ${{ inputs.count }}
+        run: |
+          python - <<'PY'
+          import os
+          import subprocess
+          import sys
+          from pathlib import Path
+          url = os.environ.get("QMYZ_LOGIN_URL", "").strip()
+          if not url:
+              sys.exit("请先在 Settings → Secrets and variables → Actions 添加 QMYZ_LOGIN_URL。")
+          try:
+              count = int(os.environ["QMYZ_COUNT"])
+          except ValueError:
+              sys.exit("答题数量必须是 1–500 的整数。")
+          if not 1 <= count <= 500:
+              sys.exit("答题数量必须在 1–500 之间。")
+          course = os.environ["QMYZ_COURSE"]
+          path = Path("qmyz") / (course + ".csv")
+          if not course.isdigit() or not path.is_file():
+              sys.exit("未找到对应课程题库。")
+          # Keep upstream exceptions (which may contain login URLs) out of public logs.
+          import contextlib
+          import io
+          import runpy
+          sys.argv = ["qm_cli.py", "-u", url, "-i", course, "-c", str(path), "-n", str(count), "-a", "100"]
+          try:
+              runpy.run_path("qm_cli.py", run_name="__main__")
+          except Exception as exc:
+              print("任务失败，错误类型：" + type(exc).__name__)
+              sys.exit(1)
+          PY
