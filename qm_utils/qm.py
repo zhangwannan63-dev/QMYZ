@@ -71,7 +71,7 @@ class qm_auto:
         res = requests.get(self.url)
         cookie = re.match(r"JSESSIONID=\w*", res.headers["set-cookie"]).group()
         cookie = cookie[len("JSESSIONID=") :]
-        print("获取到cookie: " + cookie)
+        print("登录会话已获取")
         self.JSESSIONID = cookie
         return cookie
 
