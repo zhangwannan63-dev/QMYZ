@@ -15,7 +15,7 @@ on:
         type: choice
         options: ['2', '7', '8', '9', '10', '12', '50', '59', '61', '68', '138', '257', '444', '520']
       count:
-        description: '答题数量（1–500）'
+        description: '实际提交题数（1–500，跳过不计）'
         required: true
         default: '10'
         type: string
@@ -32,7 +32,7 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -51,7 +51,7 @@ jobs:
           QMYZ_COUNT: ${{ inputs.count }}
           QMYZ_ACCURACY: ${{ inputs.accuracy }}
         run: |
-          python - <<'PY'
+          python -u - <<'PY'
           import os
           import subprocess
           import sys
