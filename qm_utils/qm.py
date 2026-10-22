@@ -4,6 +4,7 @@ import time
 import qm_utils.qm_tools as qm_tools
 import random
 import re
+from urllib.parse import urlsplit
 
 
 class qm_tiku:
@@ -21,6 +22,10 @@ class qm_tiku:
 class qm_auto:
     def __init__(self, url, tiku, courseId, JSESSIONID="", accuracy=100):
         self.url = url
+        parsed = urlsplit(url)
+        if parsed.scheme not in ("http", "https") or not parsed.netloc:
+            raise ValueError("登录链接格式错误")
+        self.base_url = parsed.scheme + "://" + parsed.netloc
         self.tiku = tiku
         self.JSESSIONID = JSESSIONID
         self.key_base64 = "ZDBmMTNiZGI3MDRhMWVhMWE3MTcwNjJiNTk0NzY0ODg"
@@ -32,9 +37,9 @@ class qm_auto:
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
             "Content-Type": "application/x-www-form-urlencoded",
-            "Origin": "http://112.5.88.114:31101",
+            "Origin": self.base_url,
             "Pragma": "no-cache",
-            "Referer": "http://112.5.88.114:31101/yiban-web/stu/toSubject.jhtml?courseId="
+            "Referer": self.base_url + "/yiban-web/stu/toSubject.jhtml?courseId="
             + self.courseId,
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Edg/128.0.0.0",
             "X-Requested-With": "XMLHttpRequest",
@@ -68,21 +73,24 @@ class qm_auto:
             return True
 
     def get_cookie_from_url(self):
-        res = requests.get(self.url)
-        cookie = re.match(r"JSESSIONID=\w*", res.headers["set-cookie"]).group()
-        cookie = cookie[len("JSESSIONID=") :]
+        session = requests.Session()
+        res = session.get(self.url, timeout=30)
+        res.raise_for_status()
+        cookie = next((item.value for item in session.cookies if item.name == "JSESSIONID"), None)
+        if not cookie:
+            raise ValueError("未获取到登录会话，请更新登录链接")
         print("登录会话已获取")
         self.JSESSIONID = cookie
         return cookie
 
     def do(self):
         ti = requests.post(
-            "http://112.5.88.114:31101/yiban-web/stu/nextSubject.jhtml",
+            self.base_url + "/yiban-web/stu/nextSubject.jhtml",
             params=self.params,
             cookies=self.cookies,
             headers=self.headers,
             data=self.data,
-            verify=False,
+            timeout=30,
         )
         if not self.judge_request(ti):
             return False
@@ -130,12 +138,12 @@ class qm_auto:
             "deviceUuid": "",
         }
         ans_res = requests.post(
-            "http://112.5.88.114:31101/yiban-web/stu/changeSituation.jhtml",
+            self.base_url + "/yiban-web/stu/changeSituation.jhtml",
             params=self.params,
             cookies=self.cookies,
             headers=self.headers,
             data=ans_data,
-            verify=False,
+            timeout=30,
         )
         if not self.judge_request(ans_res):
             return False
