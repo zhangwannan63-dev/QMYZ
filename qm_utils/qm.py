@@ -147,30 +147,36 @@ class qm_auto:
         )
         if not self.judge_request(ans_res):
             return False
-        if (
-            ans_res.status_code == 200
-            and ans_res.json()["isSuccess"] == True
-            and ans_res.json()["message"] == "回答正确！"
-        ):
+        result = ans_res.json()
+        message = str(result.get("message", ""))
+        if message == "回答正确！":
             self.num[0] += 1
-            print(
-                f"答题正确, 当前答对{self.num[0]}道，准确率为{self.calculate_accuracy()}",
-            )
-
-        else:
+            print(f"答题正确, 当前答对{self.num[0]}道，准确率为{self.calculate_accuracy()}")
+        elif "回答错误" in message or "回答不正确" in message:
             self.num[1] += 1
-            print(
-                f"答题错误, 当前答错{self.num[1]}道，准确率为{self.calculate_accuracy()}"
-            )
+            print(f"答题错误, 当前答错{self.num[1]}道，准确率为{self.calculate_accuracy()}")
+        else:
+            print("平台未返回明确答题结果，本次不计数")
+            return False
         return True
 
     def auto_do(self, num):
-        assert type(num) == int
-        if num <= 0:
-            while True:
-                time.sleep(random.randint(3, 6))
-                self.do()
-        else:
-            for i in range(num):
-                time.sleep(random.randint(3, 6))
-                self.do()
+        if not isinstance(num, int) or num <= 0:
+            raise ValueError("必须指定正整数的实际提交题数")
+        initial = sum(self.num)
+        attempts = 0
+        consecutive_skips = 0
+        while sum(self.num) - initial < num:
+            time.sleep(random.randint(3, 6))
+            attempts += 1
+            before = sum(self.num)
+            self.do()
+            completed = sum(self.num) - initial
+            if sum(self.num) > before:
+                consecutive_skips = 0
+            else:
+                consecutive_skips += 1
+            print(f"实际提交进度：{completed}/{num}；尝试次数：{attempts}", flush=True)
+            if consecutive_skips >= 100:
+                raise RuntimeError(f"连续100次未收到明确答题结果，未完成目标：{completed}/{num}")
+        print(f"任务完成：实际提交{num}题；答对{self.num[0]}，答错{self.num[1]}；正确率{self.calculate_accuracy():.4f}%", flush=True)
