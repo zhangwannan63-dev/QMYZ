@@ -1,17 +1,11 @@
-# 云端运行
+# C++云端运行
 
-在 Settings → Secrets and variables → Actions 中分别添加各账号的完整登录链接：
+1. 本分支为 `cpp-rewrite`。仓库默认分支仍保留Python版本。在 Actions → QMYZ C++ 云端运行 中选择 `cpp-rewrite`；若默认分支的页面未列出新名称，打开 qmyz.yml 工作流并在 Run workflow 的分支选项切换为 `cpp-rewrite`。
+2. 登录链接存入 Settings → Secrets and variables → Actions，对应 `QMYZ_LOGIN_URL` 或 `_2` 至 `_7` 槽位。已有Secrets可复用；不要把登录URL放到输入框、代码或Issue中。
+3. mode选择 `answer`，课程7为毛概、9为马原；count填写实际提交题数；accuracy填写目标正确率。
+4. 启动后展开“Run C++ application”，逐题查看真实提交进度。达到目标才显示任务完成。未知题/失败不计；网络、登录和验证异常可能提前失败。
+5. 每个账号单独提交一次。不同槽位可并行，GitHub配额仍可能使其排队。同一槽位不并行，待运行任务只保留最新一个，不要重复点击同一账号。
 
-| 账号槽位 / Secret 名称 | 内容 |
-| --- | --- |
-| QMYZ_LOGIN_URL | 账号 1 的登录链接 |
-| QMYZ_LOGIN_URL_2 | 账号 2 的登录链接 |
-| QMYZ_LOGIN_URL_3 | 账号 3 的登录链接 |
-| QMYZ_LOGIN_URL_4 | 账号 4 的登录链接 |
-| QMYZ_LOGIN_URL_5 | 账号 5 的登录链接 |
+运行最长120分钟。构建安装系统依赖，不需要Python生产运行环境。answer任务保留不含凭据的summary.json；fight任务保存更新后的题库CSV供下载。课程列表及离线检查也可通过mode选择。
 
-只需创建用到的槽位。登录地址从易班青马易战含视频的首页右上角复制；失效时更新对应 Secret。不要将链接提交到代码、Issue 或工作流输入框。
-
-打开 Actions → QMYZ 云端运行 → Run workflow，选择账号槽位、课程 ID、答题数量（1–500）和目标准确率（0–100）。每个账号提交一次；不同账号可并行，同一槽位不会并行。GitHub 的并发额度仍可能使任务排队；同一槽位最多保留一个待运行任务，新的待运行任务会替换旧的待运行任务。
-
-每次任务最长 60 分钟，默认 10 题、100% 目标准确率。准确率使用原项目控制算法，不保证精确达到目标。工作流使用 Python 3.11，安装 requirements.txt 后执行 qm_cli.py。代码不再打印登录 Cookie；异常只显示错误类型。题库、接口和登录状态仍可能导致失败。目前未设置定时运行，尚需有效登录链接进行实际验证。
+仓库工作流权限仅contents:read，不自动提交CSV，不改变账号的其他仓库设置。请只使用获得授权的账号。
