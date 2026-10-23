@@ -1,0 +1,73 @@
+name: Four-account combat collection
+run-name: "补库：四个账号各100场（自动选科）"
+on:
+  push:
+    branches: [cpp-rewrite]
+    paths: ['.github/workflows/combat-batch.yml']
+permissions:
+  contents: read
+jobs:
+  combat:
+    if: github.event.head_commit.message == 'Start authorized four-account combat collection 2026-10-24'
+    name: "Account ${{ matrix.slot }} · 100 matches"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {slot: 4, secret: QMYZ_LOGIN_URL_4, offset: 0}
+          - {slot: 5, secret: QMYZ_LOGIN_URL_5, offset: 1}
+          - {slot: 6, secret: QMYZ_LOGIN_URL_6, offset: 2}
+          - {slot: 7, secret: QMYZ_LOGIN_URL_7, offset: 3}
+    concurrency:
+      group: qmyz-${{ matrix.secret }}
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake g++ libcurl4-openssl-dev libssl-dev nlohmann-json3-dev
+      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build build --parallel 2
+      - name: Discover courses and run exactly 100 matches
+        env:
+          QMYZ_LOGIN_URL: ${{ secrets[matrix.secret] }}
+          COURSE_OFFSET: ${{ matrix.offset }}
+          ACCOUNT_SLOT: ${{ matrix.slot }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "$QMYZ_LOGIN_URL" ]] || { echo '账号槽位缺少登录链接'; exit 1; }
+          ./build/qmyz courses | tee courses.log
+          awk -F '\t' '$1 ~ /^[0-9]+$/ {print $1 "\t" $2}' courses.log | sort -t $'\t' -k1,1n -u > courses.tsv
+          mapfile -t available < <(cut -f1 courses.tsv)
+          (( ${#available[@]} > 0 )) || { echo '未找到可用科目，未开始对战'; exit 1; }
+          course="${available[$((COURSE_OFFSET % ${#available[@]}))]}"
+          course_name="$(awk -F '\t' -v id="$course" '$1 == id {print $2; exit}' courses.tsv)"
+          echo "账号槽位 $ACCOUNT_SLOT；自动选科：$course_name（ID $course）；目标100场"
+          echo "### 账号槽位 $ACCOUNT_SLOT" >> "$GITHUB_STEP_SUMMARY"
+          echo "自动选科：$course_name（ID $course），目标100场。" >> "$GITHUB_STEP_SUMMARY"
+          mkdir -p result
+          echo "$course" > result/course-id.txt
+          ./build/qmyz fight -i "$course" -c "qmyz/$course.csv" -n 100 | tee result/combat.log
+          echo "已正常完成100场对战。" >> "$GITHUB_STEP_SUMMARY"
+      - name: Preserve partial or complete bank
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f result/course-id.txt ]]; then
+            read -r course < result/course-id.txt
+            if [[ "$course" =~ ^[0-9]+$ && -f "qmyz/$course.csv" ]]; then
+              cp "qmyz/$course.csv" result/
+            fi
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: combat-account-${{ matrix.slot }}
+          path: |
+            result/
+            courses.tsv
+            courses.log
+          if-no-files-found: warn
+          retention-days: 30
