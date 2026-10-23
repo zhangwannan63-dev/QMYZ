@@ -7,7 +7,7 @@ on:
         required: true
         default: 'QMYZ_LOGIN_URL'
         type: choice
-        options: ['QMYZ_LOGIN_URL', 'QMYZ_LOGIN_URL_2', 'QMYZ_LOGIN_URL_3', 'QMYZ_LOGIN_URL_4', 'QMYZ_LOGIN_URL_5']
+        options: ['QMYZ_LOGIN_URL', 'QMYZ_LOGIN_URL_2', 'QMYZ_LOGIN_URL_3', 'QMYZ_LOGIN_URL_4', 'QMYZ_LOGIN_URL_5', 'QMYZ_LOGIN_URL_6', 'QMYZ_LOGIN_URL_7']
       course:
         description: '课程 ID（对应 qmyz 目录下的 CSV）'
         required: true
